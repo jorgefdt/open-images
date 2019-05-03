@@ -5,3 +5,4 @@ src/temp/
 __pycache__/
 models/
 .vscode/
+open-images.code-workspace
