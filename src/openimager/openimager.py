@@ -112,14 +112,15 @@ def _write_image_file_safely(r, image_name):
     except AttributeError:
         msg = "ERROR: Can't write image {0}.".format(image_name)
         print(msg)
+
 ##
 ## -- HELPERS
 ##
 
 def _find_labels_used_in_train_boxed():
     """Calculates the labelNames used by the train_boxed data file."""
-    class_names = _downloadClassNames()
-    train_boxed = _downloadTrainedBoxed()
+    class_names = _getClassNamesData()
+    train_boxed = _getTrainedBoxedData()
 
     # Get the labelIDs used in train_boxed
     print(f":: Calculating usedLabelIDs", end='')
@@ -142,56 +143,89 @@ def _find_labels_used_in_train_boxed():
 ## -- MAIN
 ##
 
-def download(categories,  # packagename, registry,
+def downloadTrainingImagesForCategories(categories,  # packagename, registry,
              class_names_fp=None, train_boxed_fp=None, image_ids_fp=None):
     """Download images in categories from flickr"""
-    print(f":: Download on categories: {categories}")
+    print(f":: downloadTrainingImagesForCategories({categories})")
 
+    class_names = _getClassNamesData(class_names_fp)
     train_boxed = _getTrainedBoxedData(train_boxed_fp)
+    image_ids = _getImageIdsData(image_ids_fp)
 
     # Get category IDs for the given categories and sub-select train_boxed with them.
     print(f":: Mapping labels")
+
+    # i = 2
+    # f = class_names.set_index('LabelName');     print(f":: {i}: {f}\n"); i = i+1
+    # f = f.loc[categories, 'LabelID'];           print(f":: {i}: {f}\n"); i = i+1
+    # f = f.to_frame();                           print(f":: {i}: {f}\n"); i = i+1
+    # f = f.reset_index();                        print(f":: {i}: {f}\n"); i = i+1
+    # f = f.set_index('LabelID');                 print(f":: {i}: {f}\n"); i = i+1
+    # f = f['LabelName'];                         print(f":: {i}: {f}\n"); i = i+1
+    # f = dict(f);                                print(f":: {i}: {f}\n"); i = i+1
+
     label_map = dict(class_names.set_index('LabelName').loc[categories, 'LabelID']
                      .to_frame().reset_index().set_index('LabelID')['LabelName'])
     print(f":: label_map: {label_map}")
-    label_values = set(label_map.keys())
-    print(f":: label_values: {label_values}")
-    relevant_training_images = train_boxed[train_boxed.LabelName.isin(label_values)]
-    print(f":: relevant_training_images: {relevant_training_images}")
+    
+    labelIDs = set(label_map.keys())
+    print(f":: labelIDs: {labelIDs}")
 
+    relevant_training_images = train_boxed[train_boxed.LabelName.isin(labelIDs)]
+    print(f":: relevant_training_images:\n{relevant_training_images}\n")
 
     # Start from prior results if they exist and are specified, otherwise start from scratch.
     relevant_flickr_urls = (relevant_training_images.set_index('ImageID')
                             .join(image_ids.set_index('ImageID'))
                             .loc[:, 'OriginalURL'])
+   
+    # Eliminate duplicate image urls
+    relevant_flickr_urls = relevant_flickr_urls.drop_duplicates()
+    print(f":: relevant_flickr_urls2:\n{relevant_flickr_urls}\n")
+
     relevant_flickr_img_metadata = (relevant_training_images.set_index('ImageID').loc[relevant_flickr_urls.index]
                                     .pipe(lambda df: df.assign(LabelValue=df.LabelName.map(lambda v: label_map[v]))))
+    print(f":: relevant_flickr_img_metadata:\n{relevant_flickr_img_metadata}\n")
+
     remaining_todo = len(relevant_flickr_urls) if checkpoints.results is None else\
         len(relevant_flickr_urls) - len(checkpoints.results)
     print(f"Parsing {remaining_todo} images "
           f"({len(relevant_flickr_urls) - remaining_todo} have already been downloaded)")
 
-
     # Download the images
     with tqdm(total=remaining_todo) as progress_bar:
-        relevant_image_requests = relevant_flickr_urls.safe_map(lambda url: _download_image(url, progress_bar))
+        # relevant_image_requests = relevant_flickr_urls.safe_map(lambda url: _download_image(url, progress_bar))
+        relevant_image_requests = relevant_flickr_urls.safe_map(lambda url: _download_image_safely(url, progress_bar))
         progress_bar.close()
 
     # Initialize a new data package or update an existing one
     # p = t4.Package.browse(packagename, registry) if packagename in t4.list_packages(registry) else t4.Package()
 
     # Write the images to files, adding them to the package as we go along.
+    if not os.path.isdir(f"{getTemp()}/"):
         os.mkdir(f"{getTemp()}/")
+
     for ((_, r), (_, url), (_, meta)) in zip(relevant_image_requests.iteritems(), relevant_flickr_urls.iteritems(),
                                              relevant_flickr_img_metadata.iterrows()):
         image_name = url.split("/")[-1]
         image_label = meta['LabelValue']
+        _write_image_file_safely(r, image_name)
 
-        _write_image_file(r, image_name)
 
+
+def myTest():
+    df = pd.DataFrame({'month': [1, 4, 7, 10],
+                        'year': [2012, 2014, 2013, 2014],
+                        'sale': [55, 40, 84, 31]})
+    df = df.set_index(['year', 'month'])                       
+    # _printDataFrame(":: sample 1", df, verbose=True, index=True)
+    print(f"{df}")
+
+    
 
 if __name__ == '__main__':
     categories = sys.argv[1:]
-    # download(categories)
-    _find_labels_used_in_train_boxed()
+    downloadTrainingImagesForCategories(categories)
+    # _find_labels_used_in_train_boxed()
+    # myTest()
     print(f":: Done")
