@@ -6,3 +6,5 @@ __pycache__/
 models/
 .vscode/
 open-images.code-workspace
+src/openimager/temp/
+src/openimager/temp-jorge/
