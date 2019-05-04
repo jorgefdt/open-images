@@ -17,6 +17,9 @@ checkpoints.enable()
 ## -- UTILITIES
 ##
 
+def getTemp():
+    return "temp-jorge"
+
 def _startPrintDataFrame(title):
     print(f"{title}", end='')
 
@@ -160,8 +163,7 @@ def download(categories,  # packagename, registry,
     # p = t4.Package.browse(packagename, registry) if packagename in t4.list_packages(registry) else t4.Package()
 
     # Write the images to files, adding them to the package as we go along.
-    if not os.path.isdir("temp/"):
-        os.mkdir("temp/")
+        os.mkdir(f"{getTemp()}/")
     for ((_, r), (_, url), (_, meta)) in zip(relevant_image_requests.iteritems(), relevant_flickr_urls.iteritems(),
                                              relevant_flickr_img_metadata.iterrows()):
         image_name = url.split("/")[-1]
