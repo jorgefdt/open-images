@@ -41,30 +41,30 @@ def _printDataFrame(title, df, verbose=False, index=True):
 ## -- DATA LOADERS
 ##
 
-def _downloadClassNames(class_names_fp=None, verbose=False):
+def _getClassNamesData(class_names_fp=None, verbose=False):
     """Download or load the class names pandas DataFrame"""
     _startPrintDataFrame(":: Loading class_names")
     kwargs = {'header': None, 'names': ['LabelID', 'LabelName']}
     # orig_url = "https://storage.googleapis.com/openimages/2018_04/class-descriptions-boxable.csv"
     orig_url = "../../data/class-descriptions-boxable.csv"
     retValue = pd.read_csv(class_names_fp, **kwargs) if class_names_fp else pd.read_csv(orig_url, **kwargs)
-    _endPrintDataFrame(retValue, verbose=True)
+    _endPrintDataFrame(retValue, verbose)
     return retValue
 
 
-def _downloadTrainedBoxed(train_boxed_fp=None, verbose=False):
+def _getTrainedBoxedData(train_boxed_fp=None, verbose=False):
     """Download or load the boxed image metadata pandas DataFrame"""
     _startPrintDataFrame(":: Loading train_boxed")
     # TODO: setting index_col should not be necessary in this and the next section, update the save-to-disk code
     # orig_url = "https://storage.googleapis.com/openimages/2018_04/train/train-annotations-bbox.csv"
     # orig_url = "../../data/train-annotations-bbox.csv"
-    orig_url = "../../data/train-annotations-bbox-100.csv"
+    orig_url = "../../data/train-annotations-bbox-1000.csv"
     retValue = pd.read_csv(train_boxed_fp, index_col=0) if train_boxed_fp else pd.read_csv(orig_url)
     _endPrintDataFrame(retValue, verbose)
     return retValue
 
 
-def _getImageIds(image_ids_fp=None, verbose=False):
+def _getImageIdsData(image_ids_fp=None, verbose=False):
     """Download or load the image ids metadata pandas DataFrame"""
     _startPrintDataFrame(":: Loading image_ids")
     # orig_url = "https://storage.googleapis.com/openimages/2018_04/train/train-images-boxable-with-rotation.csv"
