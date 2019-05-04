@@ -20,6 +20,7 @@ checkpoints.enable()
 def getTemp():
     return "temp-jorge"
 
+
 def _startPrintDataFrame(title):
     print(f"{title}", end='')
 
@@ -76,6 +77,7 @@ def _getImageIds(image_ids_fp=None, verbose=False):
 ##
 ## -- IO UTILS
 ##
+
 @ratelim.patient(5, 5)
 def _download_image(url, pbar):
     """Download a single image from a URL, rate-limited to once per second"""
@@ -85,13 +87,31 @@ def _download_image(url, pbar):
     return r
 
 
+@ratelim.patient(5, 5)
+def _download_image_safely(url, pbar):
+    """Download a single image from a URL, rate-limited to once per second"""
+    try:
+        return _download_image(url, pbar)
+    except requests.exceptions.HTTPError:
+        msg = "ERROR: Can't download image {0}.".format(url)
+        print(msg)
+
+
+
 def _write_image_file(r, image_name):
     """Write an image to a file"""
-    filename = f"temp/{image_name}"
+    filename = f"{getTemp()}/{image_name}"
     with open(filename, "wb") as f:
         f.write(r.content)
 
 
+def _write_image_file_safely(r, image_name):
+    """Write an image to a file"""
+    try:
+        if r != None: _write_image_file(r, image_name)
+    except AttributeError:
+        msg = "ERROR: Can't write image {0}.".format(image_name)
+        print(msg)
 ##
 ## -- HELPERS
 ##
@@ -127,9 +147,7 @@ def download(categories,  # packagename, registry,
     """Download images in categories from flickr"""
     print(f":: Download on categories: {categories}")
 
-    class_names = _downloadClassNames(class_names_fp)
-    train_boxed = _downloadTrainedBoxed(train_boxed_fp)
-    image_ids = _getImageIds(image_ids_fp)
+    train_boxed = _getTrainedBoxedData(train_boxed_fp)
 
     # Get category IDs for the given categories and sub-select train_boxed with them.
     print(f":: Mapping labels")
